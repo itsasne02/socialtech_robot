@@ -84,17 +84,17 @@ Every argument `robot.launch.py` declares is listed by:
 ros2 launch socialtech_robot_bringup robot.launch.py --show-args
 ```
 
-Check the real CAN name on the robot before launch -- it is not stable
-across reboots, see `config/tracer.yaml`:
+The Tracer adapter is `can_tracer` once socialtech_setup's udev rule is
+installed (`config/tracer.yaml`). Check it before launch:
 
 ```bash
-ip -details link show <name>
+ip -details link show can_tracer
 ```
 
 ## Launch Tracer Only
 
 ```bash
-ros2 launch socialtech_robot_bringup tracer.launch.py port_name:=can2
+ros2 launch socialtech_robot_bringup tracer.launch.py port_name:=can_tracer
 ```
 
 ## Preflight Checks

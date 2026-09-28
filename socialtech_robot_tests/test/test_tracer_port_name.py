@@ -57,7 +57,7 @@ def test_port_name_argument_reaches_tracer_base():
 
 
 def test_port_name_defaults_to_tracer_yaml():
-    assert _resolved_port_name('') == 'can2'
+    assert _resolved_port_name('') == 'can_tracer'
 
 
 def test_robot_launch_forwards_port_name_to_tracer_launch():

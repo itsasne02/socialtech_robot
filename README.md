@@ -24,7 +24,7 @@ Per-robot values are launch arguments, not edits to this repository:
 
 ```bash
 ros2 launch socialtech_robot_bringup robot.launch.py \
-  port_name:=can2 aurora_ip_address:=192.168.11.1 mount_profile:=default
+  port_name:=can_tracer aurora_ip_address:=192.168.11.1 mount_profile:=default
 ```
 
 `port_name` is the Tracer's USB-CAN interface; without it the value in

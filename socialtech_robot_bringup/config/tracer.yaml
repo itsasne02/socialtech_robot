@@ -1,17 +1,11 @@
 # Initial Tracer driver configuration for the real robot.
 #
-# Validate port_name on the robot with `ip link` before launching.
-# Do not assume this value is current: it is CONFIRMED UNSTABLE (see below),
-# so treat whatever is written here as a snapshot from the last time someone
-# checked, not a fixed default.
-# CONFIRMED UNSTABLE 2026-09-02: seen shifting on two consecutive reboots
-# (nvpmodel power mode change MODE_30W -> MAXN -> MODE_30W). USB-CAN
-# adapter wired to the Tracer: can2 -> can0 -> can2 again, matching each
-# reboot. Linux assigns can* names by detection order at boot, not by
-# fixed hardware identity, so this can shift on ANY reboot, power-mode
-# related or not. Re-validate with `ip -details link show <name>` (look
-# for "gs_usb" = the USB adapter vs. "mttcan" = a native, unconnected
-# controller) after every reboot before trusting this value.
+# port_name can_tracer: a udev rule installed by socialtech_setup
+# (host/udev/70-tracer-can.rules.in, keyed on the adapter's USB serial) gives
+# the Tracer's USB-CAN adapter that name on every boot. Without it the kernel
+# names it can0, can1 or can2 by detection order against the two native
+# mttcan controllers (seen on Robot 1 on 2026-09-02 and on Robot 2 on
+# 2026-09-28); validated on Robot 2 across two reboots.
 # odom_frame and base_frame must stay coherent with socialtech_robot_description:
 # odometry publishes odom -> base_footprint, while robot_state_publisher publishes
 # the fixed physical transform base_footprint -> base_link. base_frame stays
@@ -29,7 +23,7 @@
 tracer:
   ros__parameters:
     use_sim_time: false
-    port_name: can2
+    port_name: can_tracer
     odom_frame: odom
     base_frame: base_footprint
     odom_topic_name: odom
