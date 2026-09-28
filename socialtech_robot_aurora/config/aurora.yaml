@@ -1,0 +1,35 @@
+# Initial Aurora contract for the real robot.
+#
+# These values are intentionally centralized here even though the upstream
+# slamware_ros_sdk XML launch currently accepts only ip_address as a launch
+# argument. socialtech_robot_aurora/launch/aurora.launch.py exposes equivalent
+# launch arguments and uses them when running the clean Node wrapper.
+#
+# Validate ip_address on the robot network before deployment. Validate all
+# frames against the TF tree published by socialtech_robot_description and the
+# chosen odometry/localization source. Do not use these values to compensate
+# for wrong physical sensor offsets; those offsets belong in URDF/Xacro.
+aurora:
+  ip_address: 192.168.11.1
+  map_frame: map
+  odom_frame: odom
+  robot_frame: base_footprint
+  # Deliberately NOT "laser": slamware_laser is Aurora's own scan/SLAM frame
+  # and must stay outside the physical URDF tree (base_footprint -> base_link
+  # -> aurora_link -> laser) to avoid giving aurora_link/laser two parents.
+  # Must match the launch-argument default in
+  # socialtech_robot_aurora/launch/aurora.launch.py.
+  laser_frame: slamware_laser
+  imu_frame: imu_link
+
+  # Driver periods inherited from the upstream launch. Measure CPU, bandwidth,
+  # and navigation behavior on the real robot before changing them.
+  robot_pose_pub_period: 0.05
+  scan_pub_period: 0.1
+  map_pub_period: 0.2
+  imu_raw_data_period: 0.005
+
+  # Keep high-bandwidth streams disabled until the Aurora link and robot CPU
+  # budget have been validated.
+  no_preview_image: false
+  raw_image_on: false

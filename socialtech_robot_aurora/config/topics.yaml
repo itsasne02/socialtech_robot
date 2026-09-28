@@ -1,0 +1,53 @@
+# Expected Aurora topics.
+#
+# The upstream slamware_ros_sdk code declares fully-qualified defaults under
+# /slamware_ros_sdk_server_node. The historical XML launch also remaps scan,
+# odom, map, and map_metadata to relative names. Treat this file as the
+# SocialTech robot-side contract and validate the live graph with ros2 topic
+# list before wiring Nav2 or desktop tools to it.
+topics:
+  laser:
+    scan:
+      name: /slamware_ros_sdk_server_node/scan
+      required_for_navigation: true
+      notes: Primary planar scan from Aurora.
+  imu:
+    raw:
+      name: /slamware_ros_sdk_server_node/imu_raw_data
+      required_for_navigation: false
+      notes: Optional unless the selected state estimator consumes it.
+  point_cloud:
+    sparse:
+      name: /slamware_ros_sdk_server_node/point_cloud
+      required_for_navigation: false
+      notes: Optional perception/debug stream.
+    dense:
+      name: /slamware_ros_sdk_server_node/dense_point_cloud
+      required_for_navigation: false
+      notes: Optional enhanced imaging stream; historical patch status is pending validation.
+  map:
+    occupancy:
+      name: /slamware_ros_sdk_server_node/map
+      required_for_navigation: false
+      notes: Required only when Aurora provides the navigation map.
+    metadata:
+      name: /slamware_ros_sdk_server_node/map_metadata
+      required_for_navigation: false
+  pose_localization:
+    robot_pose:
+      name: /slamware_ros_sdk_server_node/robot_pose
+      required_for_navigation: false
+    odom:
+      name: /slamware_ros_sdk_server_node/odom
+      required_for_navigation: true
+      notes: Required only if Aurora is selected as the odometry source.
+  diagnostics_status:
+    state:
+      name: /slamware_ros_sdk_server_node/state
+      required_for_navigation: false
+    system_status:
+      name: /slamware_ros_sdk_server_node/system_status
+      required_for_navigation: false
+    relocalization_status:
+      name: /slamware_ros_sdk_server_node/relocalization_status
+      required_for_navigation: false

@@ -1,0 +1,69 @@
+# TF contract for Aurora on the SocialTech robot.
+#
+# The complete robot is expected to contain these frames:
+#   map
+#   odom
+#   base_footprint
+#   base_link
+#   aurora_link
+#   imu_link
+#   camera_left, camera_right  (Aurora onboard stereo cameras, physical
+#                               children of aurora_link, SUPUESTO offsets --
+#                               see socialtech_robot_description/config/
+#                               physical_layout.yaml)
+#   slamware_laser  (Aurora SDK scan/SLAM frame; dynamic, broadcast by the
+#                    SDK itself. Verified against vendor source
+#                    (server_workers.cpp, ServerLaserScanWorker): its real
+#                    dynamic parent is "map", not "base_footprint" -- it is
+#                    published straight from the scan's own tracking pose,
+#                    bypassing the odom/base_footprint/aurora_link chain
+#                    entirely. It is kept outside the static URDF tree
+#                    because the SDK owns it exclusively; a child frame can
+#                    only have one parent, so aurora_link must never also
+#                    define a "slamware_laser" child.
+#
+# There is no static "laser" frame: nothing in this robot (no message, no TF
+# lookup) ever used it, so it was removed. Do not re-add it as a stand-in
+# for slamware_laser.
+#
+# map -> odom: PROVISIONAL / PENDING VALIDATION, not a confirmed-correct
+# architecture. It is currently published as an identity static transform
+# by this package's aurora.launch.py (map_to_odom_static). This is only
+# acceptable as a placeholder: verified against vendor source
+# (server_workers.cpp, ServerOdometryWorker), Aurora's SDK has no real local
+# odometry -- it republishes the same absolute VSLAM pose used for the
+# map-frame robot_pose topic under the odom_frame->robot_frame TF label.
+# That means any Aurora loop-closure/relocalization/global-bundle-adjustment
+# jump propagates directly into odom -> base_footprint, not just into
+# map -> odom as REP-105 would expect. Do not treat the identity transform
+# as validated; it is pending confirmation (or replacement by a proper
+# localizer/adapter node) before this robot runs Nav2 with a saved map, loop
+# closure, or relocalization. See socialtech_setup/docs/tf_contract.md.
+#
+# odom -> base_footprint may come from Tracer odometry, Aurora odometry, or a
+# fusion node. The integration launch must choose one source explicitly.
+# When Aurora owns it, Tracer's own TF broadcast is disabled via its
+# publish_odom_tf parameter (socialtech_setup patch to tracer_ros2) rather
+# than renamed to a separate floating frame.
+#
+# base_link -> aurora_link, aurora_link -> imu_link, and
+# aurora_link -> camera_left -> camera_right are physical transforms and
+# must come from socialtech_robot_description URDF/Xacro. This package must
+# not duplicate them with static_transform_publisher.
+frames:
+  global:
+    map: map
+    odom: odom
+  robot:
+    base_footprint: base_footprint
+    base_link: base_link
+  aurora:
+    mount: aurora_link
+    scan: slamware_laser       # Aurora SDK's own laser_frame launch argument; dynamic child of "map", not of this URDF tree
+    imu: imu_link
+    camera_left: camera_left   # physical URDF child of aurora_link (robot_state_publisher); SUPUESTO offset
+    camera_right: camera_right # physical URDF child of camera_left (robot_state_publisher); SUPUESTO offset
+  ownership:
+    map_to_odom: integration_mode   # PROVISIONAL identity static transform, see comment above
+    odom_to_base_footprint: integration_mode
+    physical_sensor_transforms: socialtech_robot_description
