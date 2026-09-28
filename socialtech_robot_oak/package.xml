@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>socialtech_robot_oak</name>
+  <version>0.0.1</version>
+  <description>Wrapper package for the OAK-D-PRO camera on the SocialTech robot.</description>
+  <maintainer email="socialtech@deusto.es">SocialTech Lab</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Package names on the v3_jazzy branch of depthai-ros (see
+       socialtech_setup/tools/install_dependencies.sh DEPTHAI_ROS_BRANCH). -->
+  <exec_depend>depthai_descriptions_v3</exec_depend>
+  <exec_depend>depthai_ros_driver_v3</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,28 @@
+# Initial depthai_ros_driver_v3 configuration for the OAK-D-PRO on the real robot.
+#
+# Parameter names verified against depthai-ros@v3_jazzy (the branch pinned in
+# socialtech_setup/tools/install_dependencies.sh, DEPTHAI_ROS_BRANCH). If
+# that branch changes, re-check group/param names against
+# depthai_ros_driver_v3/config/*.yaml in a throwaway clone before trusting
+# this file.
+#
+# This key must match the `camera_name` launch argument (default "oak"). If
+# you change camera_name, either edit this key or pass your own params_file.
+#
+# Keep high-bandwidth streams (pointcloud, full-res RGB) disabled until the
+# OAK USB link and robot CPU budget have been validated, same policy as
+# socialtech_robot_aurora/config/aurora.yaml.
+/oak:
+  ros__parameters:
+    pipeline_gen:
+      i_nn_type: none
+    rgb:
+      i_publish_topic: true
+    stereo:
+      i_publish_topic: true
+      i_lr_check: true
+      i_subpixel: true
+      i_stereo_conf_threshold: 230
+      i_enable_speckle_filter: true
+      i_enable_temporal_filter: true
+      i_enable_spatial_filter: true
