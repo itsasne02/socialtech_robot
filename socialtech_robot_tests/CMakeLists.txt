@@ -30,6 +30,9 @@ if(BUILD_TESTING)
   ament_add_pytest_test(test_launch_args_declared test/test_launch_args_declared.py
     TIMEOUT 60
   )
+  ament_add_pytest_test(test_tracer_port_name test/test_tracer_port_name.py
+    TIMEOUT 60
+  )
 endif()
 
 ament_package()
