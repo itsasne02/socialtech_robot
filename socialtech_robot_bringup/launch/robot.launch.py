@@ -70,6 +70,7 @@ def generate_launch_description():
     aurora_publish_map_to_odom_static = LaunchConfiguration("aurora_publish_map_to_odom_static")
     aurora_log_level = LaunchConfiguration("aurora_log_level")
     use_oak = LaunchConfiguration("use_oak")
+    mount_profile = LaunchConfiguration("mount_profile")
     oak_mount_profile = LaunchConfiguration("oak_mount_profile")
     oak_camera_model = LaunchConfiguration("oak_camera_model")
     oak_pointcloud_enable = LaunchConfiguration("oak_pointcloud_enable")
@@ -270,6 +271,11 @@ def generate_launch_description():
             description="Add the OAK-D-PRO mount frame to the description and start socialtech_robot_oak.",
         ),
         DeclareLaunchArgument(
+            "mount_profile",
+            default_value="default",
+            description="Aurora mount profile from socialtech_robot_description/config/aurora_mounts.",
+        ),
+        DeclareLaunchArgument(
             "oak_mount_profile",
             default_value="default",
             description="OAK mount profile from socialtech_robot_description/config/oak_mounts.",
@@ -336,6 +342,7 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(description_launch),
             condition=IfCondition(use_description),
             launch_arguments={
+                "mount_profile": mount_profile,
                 "use_oak": use_oak,
                 "oak_mount_profile": oak_mount_profile,
                 "oak_include_upstream_urdf": oak_include_upstream_urdf,
