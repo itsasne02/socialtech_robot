@@ -1,0 +1,39 @@
+# Initial Tracer driver configuration for the real robot.
+#
+# Validate port_name on the robot with `ip link` before launching.
+# Do not assume this value is current: it is CONFIRMED UNSTABLE (see below),
+# so treat whatever is written here as a snapshot from the last time someone
+# checked, not a fixed default.
+# CONFIRMED UNSTABLE 2026-09-02: seen shifting on two consecutive reboots
+# (nvpmodel power mode change MODE_30W -> MAXN -> MODE_30W). USB-CAN
+# adapter wired to the Tracer: can2 -> can0 -> can2 again, matching each
+# reboot. Linux assigns can* names by detection order at boot, not by
+# fixed hardware identity, so this can shift on ANY reboot, power-mode
+# related or not. Re-validate with `ip -details link show <name>` (look
+# for "gs_usb" = the USB adapter vs. "mttcan" = a native, unconnected
+# controller) after every reboot before trusting this value.
+# odom_frame and base_frame must stay coherent with socialtech_robot_description:
+# odometry publishes odom -> base_footprint, while robot_state_publisher publishes
+# the fixed physical transform base_footprint -> base_link. base_frame stays
+# "base_footprint" regardless of who owns odom -> base_footprint (Tracer or
+# Aurora); publish_odom_tf below is what actually toggles Tracer's TF
+# broadcast, so there is never a second, renamed diagnostic frame.
+#
+# publish_odom_tf requires the socialtech_setup/patches/tracer_ros2
+# publish_odom_tf patch. robot.launch.py overrides this to false when
+# use_aurora:=true and aurora_owns_odom:=true (the default), since Aurora
+# then owns odom -> base_footprint; the /odom topic (renamed to
+# /tracer/odom in that case) keeps publishing regardless.
+#
+# These keys cover every argument exposed by tracer_base/launch/tracer_base.launch.py.
+tracer:
+  ros__parameters:
+    use_sim_time: false
+    port_name: can2
+    odom_frame: odom
+    base_frame: base_footprint
+    odom_topic_name: odom
+    publish_odom_tf: true
+    is_tracer_mini: false
+    simulated_robot: false
+    control_rate: 50
