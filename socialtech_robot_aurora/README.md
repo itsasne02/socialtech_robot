@@ -74,6 +74,28 @@ Compatibility with the vendor XML:
 ros2 launch socialtech_robot_aurora aurora.launch.py use_upstream_launch:=true
 ```
 
+### Base frame at the axle (`aurora_base_adapter`)
+
+The Aurora SDK gives the pose of the Aurora unit, and `slamware_ros_sdk`
+publishes it as `odom -> robot_frame` without any mount offset. With the
+default `aurora_base_adapter:=false`, `base_footprint` is therefore the
+Aurora itself, not the axle: on Robot 2 it sits ~0.19 m ahead of it, turning
+in place moves Nav2's robot origin along an arc, and every frame the URDF
+hangs under `aurora_link` gets the mount applied twice (open question #16,
+`socialtech_setup/docs/tf_contract.md`).
+
+```bash
+ros2 launch socialtech_robot_aurora aurora.launch.py aurora_base_adapter:=true
+```
+
+With `true` the driver publishes `odom -> aurora_pose` on
+`/slamware_ros_sdk_server_node/odom_device`, and `scripts/aurora_base_adapter.py`
+publishes `odom -> base_footprint` at the axle plus
+`/slamware_ros_sdk_server_node/odom` (pose at the axle, twist in
+`base_footprint` axes). The mount is read once from the URDF TF
+(`base_footprint -> aurora_link`), so `robot_state_publisher` must be running.
+`map -> slamware_laser` and `robot_pose` stay at the Aurora unit.
+
 ## Validate Network
 
 ```bash
@@ -144,7 +166,8 @@ ros2 launch socialtech_robot_aurora aurora.launch.py
 `socialtech_robot_bringup`'s `robot.launch.py` includes this package behind
 `use_aurora` (default `true`: Aurora is this robot's only localization
 source), forwarding `ip_address`, `map_frame`, `odom_frame`, `robot_frame`,
-`laser_frame`, and `imu_frame`:
+`laser_frame`, `imu_frame` and `aurora_base_adapter` (only when
+`aurora_owns_odom` is true):
 
 ```bash
 ros2 launch socialtech_robot_bringup robot.launch.py

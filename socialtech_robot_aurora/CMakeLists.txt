@@ -44,6 +44,11 @@ install(
 )
 
 install(
+  PROGRAMS scripts/aurora_base_adapter.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
   FILES README.md
   DESTINATION share/${PROJECT_NAME}
 )

@@ -69,6 +69,7 @@ def generate_launch_description():
     aurora_use_upstream_launch = LaunchConfiguration("aurora_use_upstream_launch")
     aurora_publish_map_to_odom_static = LaunchConfiguration("aurora_publish_map_to_odom_static")
     aurora_log_level = LaunchConfiguration("aurora_log_level")
+    aurora_base_adapter = LaunchConfiguration("aurora_base_adapter")
     use_oak = LaunchConfiguration("use_oak")
     mount_profile = LaunchConfiguration("mount_profile")
     oak_mount_profile = LaunchConfiguration("oak_mount_profile")
@@ -101,6 +102,13 @@ def generate_launch_description():
     tracer_publish_odom_tf = PythonExpression([
         "'false' if '", use_aurora, "' == 'true' and '",
         aurora_owns_odom, "' == 'true' else ''",
+    ])
+    # The adapter publishes odom -> base_footprint itself, so it only makes
+    # sense while Aurora owns odom; otherwise Tracer does and two publishers
+    # of the same transform would appear.
+    resolved_aurora_base_adapter = PythonExpression([
+        "'true' if '", aurora_base_adapter, "' == 'true' and '",
+        aurora_owns_odom, "' == 'true' else 'false'",
     ])
     resolved_aurora_robot_frame = PythonExpression([
         "'", aurora_robot_frame, "' if '", aurora_robot_frame, "' != '' else (",
@@ -266,6 +274,16 @@ def generate_launch_description():
             description="ROS log level for the Aurora driver node.",
         ),
         DeclareLaunchArgument(
+            "aurora_base_adapter",
+            default_value="false",
+            description=(
+                "Put base_footprint at the axle instead of at the Aurora unit "
+                "(socialtech_robot_aurora aurora_base_adapter.py, open question #16). "
+                "Only applied when aurora_owns_odom is true. Robot profiles set it "
+                "with AURORA_BASE_ADAPTER (socialtech_setup/robots)."
+            ),
+        ),
+        DeclareLaunchArgument(
             "use_oak",
             default_value="false",
             description="Add the OAK-D-PRO mount frame to the description and start socialtech_robot_oak.",
@@ -361,6 +379,7 @@ def generate_launch_description():
                 "use_upstream_launch": aurora_use_upstream_launch,
                 "publish_map_to_odom_static": aurora_publish_map_to_odom_static,
                 "log_level": aurora_log_level,
+                "aurora_base_adapter": resolved_aurora_base_adapter,
             }.items(),
         ),
         IncludeLaunchDescription(
