@@ -33,6 +33,9 @@ if(BUILD_TESTING)
   ament_add_pytest_test(test_tracer_port_name test/test_tracer_port_name.py
     TIMEOUT 60
   )
+  ament_add_pytest_test(test_aurora_base_adapter test/test_aurora_base_adapter.py
+    TIMEOUT 60
+  )
 endif()
 
 ament_package()

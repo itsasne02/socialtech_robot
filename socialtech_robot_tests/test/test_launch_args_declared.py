@@ -16,6 +16,7 @@ from ament_index_python.packages import get_package_share_directory
 
 DESCRIPTION_PKG = 'socialtech_robot_description'
 BRINGUP_PKG = 'socialtech_robot_bringup'
+AURORA_PKG = 'socialtech_robot_aurora'
 
 
 def _parse(pkg, relative_path):
@@ -110,3 +111,19 @@ def test_description_launch_declares_oak_arguments():
     declared = _declared_launch_arguments(description_tree)
     for name in ('use_oak', 'oak_mount_profile', 'oak_include_upstream_urdf'):
         assert name in declared, f"description.launch.py must declare '{name}'"
+
+
+def test_aurora_launch_declares_everything_robot_launch_forwards():
+    aurora_tree = _parse(AURORA_PKG, 'launch/aurora.launch.py')
+    bringup_tree = _parse(BRINGUP_PKG, 'launch/robot.launch.py')
+
+    declared = _declared_launch_arguments(aurora_tree)
+    forwarded = _forwarded_argument_keys(bringup_tree, 'aurora_launch')
+
+    assert 'aurora_base_adapter' in forwarded, (
+        'robot.launch.py must forward aurora_base_adapter to aurora.launch.py')
+    undeclared = forwarded - declared
+    assert not undeclared, (
+        f'robot.launch.py forwards {sorted(undeclared)} to aurora.launch.py, '
+        'which does not declare them; ros2 launch would drop them silently.'
+    )
