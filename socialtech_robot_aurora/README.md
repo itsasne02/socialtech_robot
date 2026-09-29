@@ -96,6 +96,18 @@ publishes `odom -> base_footprint` at the axle plus
 (`base_footprint -> aurora_link`), so `robot_state_publisher` must be running.
 `map -> slamware_laser` and `robot_pose` stay at the Aurora unit.
 
+### Depth camera point cloud (measurement only)
+
+```bash
+ros2 launch socialtech_robot_aurora aurora.launch.py enable_dense_point_cloud:=true dense_point_cloud_stride:=2
+```
+
+Publishes `/slamware_ros_sdk_server_node/dense_point_cloud` (organized, in
+`camera_depth_optical_frame`, `aurora_ros` patch `0006`), computed only while
+someone subscribes. Not a navigation obstacle source: on Robot 1 the depth
+was systematically wrong (`ros2_ws/docs/project_context/06_perception_modes.md`,
+Modo F); it is exposed to measure it again with the axle-based TF.
+
 ## Validate Network
 
 ```bash

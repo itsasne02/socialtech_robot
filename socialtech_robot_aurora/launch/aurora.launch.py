@@ -23,6 +23,8 @@ def generate_launch_description():
     publish_map_to_odom_static = LaunchConfiguration("publish_map_to_odom_static")
     log_level = LaunchConfiguration("log_level")
     aurora_base_adapter = LaunchConfiguration("aurora_base_adapter")
+    enable_dense_point_cloud = LaunchConfiguration("enable_dense_point_cloud")
+    dense_point_cloud_stride = LaunchConfiguration("dense_point_cloud_stride")
 
     # With the adapter the driver keeps the SDK pose on its own frame and
     # topic, and aurora_base_adapter.py publishes robot_frame at the axle
@@ -126,6 +128,23 @@ def generate_launch_description():
                 "robot_state_publisher. Ignored with use_upstream_launch."
             ),
         ),
+        DeclareLaunchArgument(
+            "enable_dense_point_cloud",
+            default_value="false",
+            description=(
+                "Publish the depth camera's organized point cloud "
+                "(/slamware_ros_sdk_server_node/dense_point_cloud, "
+                "camera_depth_optical_frame; aurora_ros patch 0006). Computed only "
+                "while someone subscribes. Off by default: the depth was found "
+                "systematically wrong on Robot 1 (06_perception_modes.md, Modo F); "
+                "enable it to measure, not to navigate."
+            ),
+        ),
+        DeclareLaunchArgument(
+            "dense_point_cloud_stride",
+            default_value="1",
+            description="Keep every stride-th row/column of the dense point cloud (3 = ~1/9 of the points).",
+        ),
         IncludeLaunchDescription(
             AnyLaunchDescriptionSource(upstream_launch),
             condition=IfCondition(use_upstream_launch),
@@ -147,6 +166,8 @@ def generate_launch_description():
                 "map_frame": map_frame,
                 "robot_frame": driver_robot_frame,
                 "odom_topic": driver_odom_topic,
+                "enable_dense_point_cloud": enable_dense_point_cloud,
+                "dense_point_cloud_stride": dense_point_cloud_stride,
                 "odom_frame": odom_frame,
                 "laser_frame": laser_frame,
                 "imu_frame": imu_frame,
