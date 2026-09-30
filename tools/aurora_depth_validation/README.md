@@ -76,3 +76,18 @@ ray directions. Document units, bias, spread and a validated operating
 range before accepting phase 2. Observed min/max depths are not an accepted
 range. Do not continue to TF acceptance, the production node or Nav2 while
 physical measurements are missing or fail.
+
+## Read-only physical LaserScan comparison
+
+With the existing Aurora driver running, execute `python3 depth_lidar_probe.py
+--seconds 20` from this directory and save stdout to JSON. Requires existing
+ROS sensor_msgs/tf2_msgs/rosidl_runtime_py and NumPy; no new dependencies.
+Records concurrent depth ROI statistics, CameraInfo, full scans at <=2 Hz,
+scan frequency and existing TF messages. It publishes no TF or sensor data.
+The ROI [191,137,20,20] is specific to this 416x224 validation capture;
+verify CameraInfo/principal point before reusing it with another calibration.
+Laser statistics use +/-10 degrees about the scan frame +X and include
+both radial range and x=range*cos(angle). Those axes/origins are not assumed
+equal to depth axes/origins. Nonfinite scan values are retained as strings.
+Keep wall and robot stationary; publication stamps do not prove acquisition
+synchronization. Exact alignment and metric acceptance remain pending.
