@@ -1,0 +1,20 @@
+aurora_depth_obstacle_scan:
+  ros__parameters:
+    depth_topic: /slamware_ros_sdk_server_node/depth_image_raw
+    camera_info_topic: /slamware_ros_sdk_server_node/camera_info
+    scan_topic: /aurora/depth_obstacle_scan
+    min_height: 0.05
+    max_height: 0.90
+    min_range: 0.20
+    max_range: 3.00
+    # Provisional diagnostic bounds, not an accepted sensor operating range.
+    min_depth: 0.20
+    max_depth: 3.00
+    angle_min: -1.5707963267948966
+    angle_max: 1.5707963267948966
+    angle_increment: 0.017453292519943295
+    pixel_stride_x: 2
+    pixel_stride_y: 2
+    publish_rate: 5.0
+    transform_tolerance: 0.05
+    max_input_age: 1.0

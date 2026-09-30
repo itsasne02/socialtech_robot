@@ -1,0 +1,80 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Background Color: 35; 35; 35
+    Fixed Frame: base_link
+    Frame Rate: 20
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid (base_link z=0)
+      Enabled: true
+      Cell Size: 0.25
+      Plane Cell Count: 24
+      Reference Frame: <Fixed Frame>
+      Plane: XY
+      Color: 120; 120; 120
+      Alpha: 0.5
+    - Class: rviz_default_plugins/TF
+      Name: Existing TF
+      Enabled: true
+      Show Names: true
+      Show Axes: true
+      Show Arrows: false
+      Marker Scale: 0.15
+    - Class: rviz_default_plugins/LaserScan
+      Name: Physical LiDAR (red)
+      Enabled: true
+      Topic:
+        Value: /slamware_ros_sdk_server_node/scan
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Depth: 5
+      Color Transformer: FlatColor
+      Color: 255; 70; 70
+      Position Transformer: XYZ
+      Style: Flat Squares
+      Size (m): 0.025
+      Size (Pixels): 3
+      Alpha: 1
+      Decay Time: 0.5
+      Use Fixed Frame: true
+    - Class: rviz_default_plugins/LaserScan
+      Name: DIAGNOSTIC depth 0.05-0.90 m (green)
+      Enabled: true
+      Topic:
+        Value: /aurora/depth_obstacle_scan
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Depth: 5
+      Color Transformer: FlatColor
+      Color: 60; 255; 100
+      Position Transformer: XYZ
+      Style: Flat Squares
+      Size (m): 0.025
+      Size (Pixels): 3
+      Alpha: 1
+      Decay Time: 0.5
+      Use Fixed Frame: true
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: Top view
+      Target Frame: base_link
+      Scale: 130
+      X: 1.0
+      Y: 0
+      Angle: 0
+Window Geometry:
+  Width: 1100
+  Height: 800

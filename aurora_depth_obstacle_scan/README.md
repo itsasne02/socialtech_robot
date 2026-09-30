@@ -1,0 +1,68 @@
+# Aurora native depth → diagnostic LaserScan
+
+**Diagnostic prototype. Not accepted for navigation.** The operator explicitly
+authorized RViz validation before completing metric/TF acceptance on 2026-09-30.
+No Nav2 overlay, no clearing, no PointCloud2, no new TF authority. No OpenCV,
+CUDA, VPI or Isaac dependency. Native DEPTH_MAP = optical Z was checked against
+paired SDK POINT3D; physical accuracy, camera extrinsics and floor rejection
+remain to be validated. No scale or offset correction is applied.
+
+Build only this package with Release and source the resulting install:
+
+```bash
+colcon build --packages-select aurora_depth_obstacle_scan --cmake-args -DCMAKE_BUILD_TYPE=Release
+source install/local_setup.bash
+ros2 launch aurora_depth_obstacle_scan diagnostic.launch.py
+```
+
+This launch starts only the new node. The existing Aurora driver must provide
+32FC1 depth and exact-stamp CameraInfo; the existing robot_state_publisher must
+provide camera → base_link. Do not launch duplicate drivers or TF publishers.
+Physical LiDAR remains `/slamware_ros_sdk_server_node/scan`. Output is
+`/aurora/depth_obstacle_scan`, frame **base_link**, stamped with the input image.
+
+On the desktop (with RViz already installed), same ROS domain/network as robot:
+
+```bash
+rviz2 -d "$(ros2 pkg prefix --share aurora_depth_obstacle_scan)/rviz/depth_diagnostic.rviz"
+```
+
+Green: depth scan. Red: physical LiDAR. RViz uses base_link as fixed frame.
+The LiDAR requires the existing full TF chain through map/odom. Do not create
+a replacement TF to make the display work. Existing camera translation and
+rotation are provisional for Robot 2. Missing TF is a finding, not permission
+to publish an invented transform. The scan projects accepted heights onto
+base_link z=0; the LiDAR display can sit at a different z. Compare in top view.
+
+Parameters are in `config/diagnostic.yaml`, startup-only. Copy that file,
+change the height/range/stride/angle limits, and restart using
+`params_file:=/absolute/path/to/copy.yaml`. All heights are in base_link,
+never base_footprint. Start at 5 Hz and stride 2×2. `min_depth/max_depth`
+bound optical Z; `min_range/max_range` bound horizontal range in base_link.
+Those depth limits are **provisional**, not a physically validated range.
+`transform_tolerance` bounds the wait for TF at the image stamp; there is no
+latest-transform fallback. `max_input_age` rejects stale/future ROS stamps.
+
+The node uses a bounded 8-pair pointer cache with exact stamp matching,
+processes only the latest new pair on each rate-limited timer tick,
+precomputes pinhole rays only when K/dimensions change, and reuses the scan
+range buffer. The projection loop allocates no buffers. ROS transport and
+TF can still allocate; this is not a claim of allocation-free middleware.
+Malformed frames, nonzero distortion, unsupported binning/ROI, missing TF,
+NaN/Inf/nonpositive/out-of-bound depths are rejected. Each angular bin keeps
+the closest surviving point. Empty bins are +Inf: **unobserved, not free**.
+Missing input or TF produces no replacement scan. Never enable clearing
+from this diagnostic output. No confidence map is assumed available.
+
+The driver currently shares a ROS publication-time stamp between depth and
+CameraInfo. Device acquisition timestamps use a different, unverified clock;
+they are not copied into ROS Time. Logs report processing+publication time
+and ROS stamp age, which is **not acquisition latency**. Static camera mount
+allows this MVP; motion timing and full benchmark remain pending.
+
+RViz acceptance sequence, stationary robot: empty floor; wall; box; person;
+table leg; tabletop above LiDAR; low object below LiDAR; difficult surfaces.
+Check floor rejection and height bands before navigation. Empty bins should
+replace old detections when the object leaves view; RViz decay limits stale
+display if the stream stops. Record failures, do not fit one wall by changing
+TF or scale. Compare several distances and orientations before calibration.
