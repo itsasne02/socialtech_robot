@@ -78,11 +78,12 @@ synthetic TF never reaches robot domain 43.
 
 ## Near-field local costmap trial
 
-`config/local_near.yaml` limits **horizontal range from base_link** to 1.50 m,
+`config/local_near.yaml` limits **horizontal range from base_link** to 2.00 m
+(1.50 m until 2026-09-30, raised by Itsasne to see low obstacles earlier),
 while retaining the 0.05–0.90 m height band, stride 2×2 and 5 Hz. Optical Z
 limits are independent. The previous 3 m diagnostic profile stays available.
-For the current 0.70 m long centered footprint, a frontal return at 1.50 m
-is about 1.15 m ahead of the bumper. This is a trial range, not an accepted
+For the current 0.70 m long centered footprint, a frontal return at 2.00 m
+is about 1.65 m ahead of the bumper. This is a trial range, not an accepted
 stopping distance; include speed, latency, braking and thin-object detection
 in physical acceptance.
 

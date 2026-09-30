@@ -11,7 +11,8 @@ aurora_depth_obstacle_scan:
     min_height: 0.05
     max_height: 0.90
     min_range: 0.20
-    max_range: 1.50
+    # 1.50 until 2026-09-30; 2.00 (Itsasne) to see low obstacles earlier.
+    max_range: 2.00
     # Optical Z limits are separate from the horizontal base_link range above.
     # These remain provisional sensor-validity bounds, not a calibrated range.
     min_depth: 0.20
