@@ -24,15 +24,18 @@ def main():
     rclpy.init()
     node = rclpy.create_node('depth_scan_contract_test')
     messages = []
+    free = []
     depth_pub = node.create_publisher(Image, '/test/depth', qos_profile_sensor_data)
     info_pub = node.create_publisher(CameraInfo, '/test/info', qos_profile_sensor_data)
     node.create_subscription(LaserScan, '/test/scan', messages.append, qos_profile_sensor_data)
+    node.create_subscription(LaserScan, '/test/free', free.append, qos_profile_sensor_data)
     tf = StaticTransformBroadcaster(node)
     log_path = Path(os.environ.get('DEPTH_TEST_LOG', '/tmp/aurora_depth_scan_ros_test.log'))
     with log_path.open('w') as log:
         process = subprocess.Popen([binary, '--ros-args',
             '-p', 'depth_topic:=/test/depth', '-p', 'camera_info_topic:=/test/info',
-            '-p', 'scan_topic:=/test/scan', '-p', 'publish_rate:=20.0',
+            '-p', 'scan_topic:=/test/scan', '-p', 'free_scan_topic:=/test/free',
+            '-p', 'publish_rate:=20.0',
             '-p', 'pixel_stride_x:=1', '-p', 'pixel_stride_y:=1',
             '-p', 'transform_tolerance:=0.0'], stdout=log, stderr=subprocess.STDOUT)
         try:
@@ -83,7 +86,10 @@ def main():
                         msg = messages[-1]
                         stamp = msg.header.stamp.sec * 10**9 + msg.header.stamp.nanosec
                         assert stamp in stamps, 'Output must preserve exact matched input stamp'
-                        return msg
+                        spin(0.05)
+                        match = [f for f in free if f.header.stamp == msg.header.stamp]
+                        assert match, 'Free scan missing for ' + str(stamp)
+                        return msg, match[-1]
                 raise AssertionError('No scan received; see ' + str(log_path))
 
             spin(1.0)
@@ -103,20 +109,25 @@ def main():
             silent(malformed=True)
             silent(age=2.0)
             for info_first in (False, True):
-                msg = receive(info_first=info_first)
+                msg, seen = receive(info_first=info_first)
                 assert msg.header.frame_id == 'base_link'
                 assert len(msg.ranges) == 181
                 assert abs(msg.ranges[90] - 1.2) < 1e-5
                 assert sum(math.isfinite(v) for v in msg.ranges) == 1
+                assert seen.header.frame_id == 'base_link' and len(seen.ranges) == 181
+                assert abs(seen.ranges[90] - 1.2) < 1e-5, 'Free only up to the obstacle'
+                assert sum(math.isnan(v) for v in seen.ranges) == 180
             for invalid in (float('nan'), float('inf'), 0., -1.):
-                msg = receive(value=invalid)
+                msg, seen = receive(value=invalid)
                 assert all(math.isinf(v) and v > 0 for v in msg.ranges)
+                assert all(math.isnan(v) for v in seen.ranges), 'Invalid depth is not free'
             spin(0.2)
             before = len(messages)
             spin(0.3)
             assert len(messages) == before, 'Must not republish stale frames without new input'
             print('PASS: exact stamps, both arrival orders, base_link geometry, missing TF, '
-                  'malformed/stale input, invalid depth -> +Inf, no stale replay')
+                  'malformed/stale input, invalid depth -> +Inf, no stale replay, '
+                  'free scan with the same stamp, invalid depth -> NaN free')
         finally:
             process.terminate()
             try:

@@ -91,6 +91,13 @@ ros2 launch aurora_depth_obstacle_scan diagnostic.launch.py \
   params_file:="$(ros2 pkg prefix --share aurora_depth_obstacle_scan)/config/local_near.yaml"
 ```
 
+`local_near.yaml` also publishes `/aurora/depth_free_scan` (`free_scan_topic`,
+empty disables it): same bins and stamp, how far each bin was seen free (up
+to the nearest in-band return, or to the farthest floor return below
+`min_height`, just under `max_range` for returns beyond it), NaN without
+evidence. `socialtech_robot_navigation`'s
+`local_costmap_sources/scan_and_aurora_depth_clearing.yaml` clears with it.
+
 Start only one instance of this node (the bringup's `aurora_depth_scan:=true`
 is one). The optional costmap integration lives
 in `socialtech_robot_navigation/config/local_costmap_sources/scan_and_aurora_depth.yaml`.

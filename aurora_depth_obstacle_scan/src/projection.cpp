@@ -51,10 +51,12 @@ void Projection::camera(std::uint32_t width, std::uint32_t height,
 }
 
 Counts Projection::project(const std::uint8_t * data, std::size_t size, std::size_t step,
-  bool big_endian, const Transform & t, std::vector<float> & ranges) const
+  bool big_endian, const Transform & t, std::vector<float> & ranges,
+  std::vector<float> * free_ranges) const
 {
   if (!data || !width_ || !height_ || step < std::size_t(width_) * 4 ||
-    step > size / height_ || ranges.size() != bins_)
+    step > size / height_ || ranges.size() != bins_ ||
+    (free_ranges && free_ranges->size() != bins_))
   {
     throw std::invalid_argument("Invalid image buffer/stride or scan buffer");
   }
@@ -64,6 +66,12 @@ Counts Projection::project(const std::uint8_t * data, std::size_t size, std::siz
     throw std::invalid_argument("Nonfinite transform");
   }
   std::fill(ranges.begin(), ranges.end(), std::numeric_limits<float>::infinity());
+  // laser_geometry drops ranges >= range_max, so free space reaching it is
+  // published just under it.
+  const float free_cap = static_cast<float>(config_.max_range - 1e-3);
+  if (free_ranges) {
+    std::fill(free_ranges->begin(), free_ranges->end(), 0.0F);
+  }
   const std::uint16_t endian = 1;
   const bool swap = big_endian != (*reinterpret_cast<const std::uint8_t *>(&endian) == 0);
   const auto & r = t.rotation;
@@ -84,20 +92,39 @@ Counts Projection::project(const std::uint8_t * data, std::size_t size, std::siz
       ++counts.valid_depth;
       const double cx = ray_x_[u] * depth, cy = ray_y_[v] * depth, cz = depth;
       const double z = r[6] * cx + r[7] * cy + r[8] * cz + t.translation[2];
-      if (!std::isfinite(z) || z < config_.min_height || z > config_.max_height) {continue;}
-      ++counts.height_pass;
+      if (!std::isfinite(z) || z > config_.max_height) {continue;}
+      // Below the band is the floor: no obstacle, but the ray crossed the band.
+      const bool floor = z < config_.min_height;
+      if (floor && !free_ranges) {continue;}
+      if (!floor) {++counts.height_pass;}
       const double x = r[0] * cx + r[1] * cy + r[2] * cz + t.translation[0];
       const double y = r[3] * cx + r[4] * cy + r[5] * cz + t.translation[1];
       const double rr = x * x + y * y;
-      if (!std::isfinite(rr) || rr < config_.min_range * config_.min_range ||
-        rr > config_.max_range * config_.max_range) {continue;}
+      if (!std::isfinite(rr) || rr < config_.min_range * config_.min_range) {continue;}
+      const bool beyond = rr > config_.max_range * config_.max_range;
+      if (beyond && !free_ranges) {continue;}
       const double angle = std::atan2(y, x);
       if (angle < config_.angle_min || angle > angle_max()) {continue;}
       const auto bin = static_cast<std::size_t>(
         std::llround((angle - config_.angle_min) / config_.angle_increment));
-      if (bin < ranges.size()) {
+      if (bin >= ranges.size()) {continue;}
+      if (!floor && !beyond) {
         ranges[bin] = std::min(ranges[bin], static_cast<float>(std::sqrt(rr)));
         ++counts.binned;
+      } else {
+        auto & seen = (*free_ranges)[bin];
+        seen = std::max(seen, std::min(static_cast<float>(std::sqrt(rr)), free_cap));
+        ++counts.free_evidence;
+      }
+    }
+  }
+  if (free_ranges) {
+    for (std::size_t bin = 0; bin < bins_; ++bin) {
+      auto & seen = (*free_ranges)[bin];
+      if (std::isfinite(ranges[bin])) {
+        seen = ranges[bin];
+      } else if (seen <= 0.0F) {
+        seen = std::numeric_limits<float>::quiet_NaN();
       }
     }
   }

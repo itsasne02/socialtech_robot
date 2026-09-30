@@ -164,3 +164,56 @@ TEST(Projection, AngularEndpointUsesLastBin)
   EXPECT_EQ(run(p, {1}, 1, t, out).binned, 1U);
   EXPECT_NEAR(out.back(), 1, 1e-6);
 }
+
+TEST(Projection, FreeRangesDoNotChangeObstacleRanges)
+{
+  Projection p(full_sampling());
+  p.camera(2, 2, k(100, 1, -0.6));
+  std::vector<float> without(p.bins()), with(p.bins()), seen(p.bins());
+  const std::vector<float> depth{1.0F, 2.0F, 0.2F, INFINITY};
+  const auto a = run(p, depth, 2, mount(), without);
+  const auto b = p.project(reinterpret_cast<const uint8_t *>(depth.data()), depth.size() * 4,
+    8, host_big_endian(), mount(), with, &seen);
+  EXPECT_EQ(a.binned, b.binned);
+  EXPECT_EQ(a.height_pass, b.height_pass);
+  for (size_t i = 0; i < without.size(); ++i) {
+    EXPECT_TRUE(without[i] == with[i] || (std::isinf(without[i]) && std::isinf(with[i])));
+  }
+}
+
+TEST(Projection, FreeRangesFromFloorHitsAndNoEvidence)
+{
+  auto config = full_sampling();
+  config.max_depth = 10;
+  Projection p(config);
+  std::vector<float> out(p.bins()), seen(p.bins());
+  auto project = [&](const std::vector<float> & d, size_t w, const Transform & t) {
+      return p.project(reinterpret_cast<const uint8_t *>(d.data()), d.size() * 4, w * 4,
+               host_big_endian(), t, out, &seen);
+    };
+  // One column: row 0 reaches the floor (z=0.6-0.6*1=0) at x=1.2, row 1 hits
+  // an obstacle at z=0.6-1.6*0.2=0.28, x=0.4.
+  p.camera(1, 2, k(100, 1, -0.6));
+  auto c = project({1.0F, INFINITY}, 1, mount());
+  EXPECT_EQ(c.free_evidence, 1U);
+  EXPECT_TRUE(std::isinf(out[90]));
+  EXPECT_NEAR(seen[90], 1.2, 1e-6);  // floor seen at 1.2 m, no obstacle
+  EXPECT_TRUE(std::isnan(seen[0]));  // no pixel in that bin
+  project({1.0F, 0.2F}, 1, mount());
+  EXPECT_NEAR(out[90], 0.4, 1e-6);
+  EXPECT_NEAR(seen[90], 0.4, 1e-6);  // free only up to the obstacle
+  project({NAN, INFINITY}, 1, mount());
+  EXPECT_TRUE(std::isnan(seen[90]));  // invalid depth is not free space
+  // In-band beyond max_range: free up to just under it.
+  p.camera(1, 1, k());
+  project({4.0F}, 1, mount());
+  EXPECT_TRUE(std::isinf(out[90]));
+  EXPECT_NEAR(seen[90], 3.0 - 1e-3, 1e-6);
+  EXPECT_LT(seen[90], 3.0F);
+  // Above the band (z=1.0) says nothing about the band.
+  project({1.0F}, 1, mount(1.0));
+  EXPECT_TRUE(std::isnan(seen[90]));
+  std::vector<float> wrong(p.bins() - 1);
+  EXPECT_THROW(p.project(reinterpret_cast<const uint8_t *>(out.data()), 4, 4,
+    host_big_endian(), mount(), out, &wrong), std::invalid_argument);
+}

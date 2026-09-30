@@ -68,10 +68,18 @@ public:
     const auto info_topic = param<std::string>("camera_info_topic",
       "/slamware_ros_sdk_server_node/camera_info");
     const auto output_topic = param<std::string>("scan_topic", "/aurora/depth_obstacle_scan");
+    // Empty: no free-space scan. Same bins, header and limits as the
+    // obstacle scan; NaN where the image gave no evidence (see projection.hpp).
+    const auto free_topic = param<std::string>("free_scan_topic", "");
     buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
     listener_ = std::make_unique<tf2_ros::TransformListener>(*buffer_);
     publisher_ = create_publisher<sensor_msgs::msg::LaserScan>(
       output_topic, rclcpp::SensorDataQoS().keep_last(1));
+    if (!free_topic.empty()) {
+      free_publisher_ = create_publisher<sensor_msgs::msg::LaserScan>(
+        free_topic, rclcpp::SensorDataQoS().keep_last(1));
+      free_scan_ = scan_;
+    }
     image_sub_ = create_subscription<Image>(depth_topic, rclcpp::SensorDataQoS().keep_last(8),
       [this](Image::ConstSharedPtr image) {
         images_[image_index_++ % images_.size()] = std::move(image);
@@ -158,18 +166,24 @@ private:
       transform.translation = {tf.transform.translation.x, tf.transform.translation.y,
         tf.transform.translation.z};
       const auto counts = projection_->project(d.data.data(), d.data.size(), d.step,
-        d.is_bigendian != 0, transform, scan_.ranges);
+        d.is_bigendian != 0, transform, scan_.ranges,
+        free_publisher_ ? &free_scan_.ranges : nullptr);
       scan_.header.stamp = d.header.stamp;
       scan_.scan_time = last_published_ == Clock::time_point{} ? static_cast<float>(1 / rate_) :
         static_cast<float>(std::chrono::duration<double>(started - last_published_).count());
       publisher_->publish(scan_);
+      if (free_publisher_) {
+        free_scan_.header.stamp = scan_.header.stamp;
+        free_scan_.scan_time = scan_.scan_time;
+        free_publisher_->publish(free_scan_);
+      }
       last_published_ = started;
       const double elapsed = std::chrono::duration<double, std::milli>(Clock::now() - started).count();
       RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 5000,
         "frame process+publish=%.3fms ROS_stamp_age=%.1fms samples=%zu valid=%zu height=%zu "
-        "binned=%zu ray_updates=%zu (ROS stamp age is NOT acquisition latency)",
+        "binned=%zu free_evidence=%zu ray_updates=%zu (ROS stamp age is NOT acquisition latency)",
         elapsed, age * 1000, counts.sampled, counts.valid_depth, counts.height_pass,
-        counts.binned, projection_->ray_updates());
+        counts.binned, counts.free_evidence, projection_->ray_updates());
     } catch (const std::exception & error) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000, "Skipping depth frame: %s", error.what());
     }
@@ -178,13 +192,13 @@ private:
   std::unique_ptr<Projection> projection_;
   std::unique_ptr<tf2_ros::Buffer> buffer_;
   std::unique_ptr<tf2_ros::TransformListener> listener_;
-  rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr publisher_;
+  rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr publisher_, free_publisher_;
   rclcpp::Subscription<Image>::SharedPtr image_sub_;
   rclcpp::Subscription<Info>::SharedPtr info_sub_;
   std::array<Image::ConstSharedPtr, 8> images_{};
   std::array<Info::ConstSharedPtr, 8> infos_{};
   std::size_t image_index_{0}, info_index_{0};
-  sensor_msgs::msg::LaserScan scan_;
+  sensor_msgs::msg::LaserScan scan_, free_scan_;
   Image::ConstSharedPtr pending_image_;
   Info::ConstSharedPtr pending_info_;
   rclcpp::TimerBase::SharedPtr timer_;
