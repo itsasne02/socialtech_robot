@@ -34,6 +34,13 @@ bringup only (depthai_ros_driver_v3), not obstacle-source processing --
 depth_image_proc is a different library entirely. This bringup package is
 what decides which sensors run together for a given robot configuration,
 so the toggle lives here.
+
+aurora_depth_scan defaults to false and requires use_aurora:=true. It starts
+aurora_depth_obstacle_scan (Aurora native depth, 0.05-0.90 m above
+base_link, projected to /aurora/depth_obstacle_scan) with its
+config/local_near.yaml, which socialtech_robot_navigation's
+collision_source:=aurora_depth uses to stop before low obstacles. Robot
+profiles set it with AURORA_DEPTH_SCAN (socialtech_setup/robots).
 """
 
 from launch import LaunchDescription
@@ -70,6 +77,8 @@ def generate_launch_description():
     aurora_publish_map_to_odom_static = LaunchConfiguration("aurora_publish_map_to_odom_static")
     aurora_log_level = LaunchConfiguration("aurora_log_level")
     aurora_base_adapter = LaunchConfiguration("aurora_base_adapter")
+    aurora_depth_scan = LaunchConfiguration("aurora_depth_scan")
+    aurora_depth_scan_params = LaunchConfiguration("aurora_depth_scan_params")
     use_oak = LaunchConfiguration("use_oak")
     mount_profile = LaunchConfiguration("mount_profile")
     oak_mount_profile = LaunchConfiguration("oak_mount_profile")
@@ -114,6 +123,9 @@ def generate_launch_description():
         "'", aurora_robot_frame, "' if '", aurora_robot_frame, "' != '' else (",
         "'base_footprint' if '", aurora_owns_odom, "' == 'true' else 'slamware_base')",
     ])
+    run_aurora_depth_scan = PythonExpression([
+        "'", use_aurora, "' == 'true' and '", aurora_depth_scan, "' == 'true'",
+    ])
     run_oak_pointcloud_processing = PythonExpression([
         "'", use_oak, "' == 'true' and '", oak_pointcloud_processing, "' == 'true'",
     ])
@@ -137,6 +149,12 @@ def generate_launch_description():
         FindPackageShare("socialtech_robot_aurora"),
         "launch",
         "aurora.launch.py",
+    ])
+
+    aurora_depth_scan_launch = PathJoinSubstitution([
+        FindPackageShare("aurora_depth_obstacle_scan"),
+        "launch",
+        "diagnostic.launch.py",
     ])
 
     oak_launch = PathJoinSubstitution([
@@ -284,6 +302,25 @@ def generate_launch_description():
             ),
         ),
         DeclareLaunchArgument(
+            "aurora_depth_scan",
+            default_value="false",
+            description=(
+                "Start aurora_depth_obstacle_scan (Aurora native depth -> "
+                "/aurora/depth_obstacle_scan), needed by Nav2's "
+                "collision_source:=aurora_depth. Requires use_aurora:=true. "
+                "Robot profiles set it with AURORA_DEPTH_SCAN (socialtech_setup/robots)."
+            ),
+        ),
+        DeclareLaunchArgument(
+            "aurora_depth_scan_params",
+            default_value=PathJoinSubstitution([
+                FindPackageShare("aurora_depth_obstacle_scan"),
+                "config",
+                "local_near.yaml",
+            ]),
+            description="Parameters of aurora_depth_obstacle_scan (default: 1.50 m near-field profile).",
+        ),
+        DeclareLaunchArgument(
             "use_oak",
             default_value="false",
             description="Add the OAK-D-PRO mount frame to the description and start socialtech_robot_oak.",
@@ -380,6 +417,13 @@ def generate_launch_description():
                 "publish_map_to_odom_static": aurora_publish_map_to_odom_static,
                 "log_level": aurora_log_level,
                 "aurora_base_adapter": resolved_aurora_base_adapter,
+            }.items(),
+        ),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(aurora_depth_scan_launch),
+            condition=IfCondition(run_aurora_depth_scan),
+            launch_arguments={
+                "params_file": aurora_depth_scan_params,
             }.items(),
         ),
         IncludeLaunchDescription(

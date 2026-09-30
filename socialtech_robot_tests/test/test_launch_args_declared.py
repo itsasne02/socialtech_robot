@@ -17,6 +17,7 @@ from ament_index_python.packages import get_package_share_directory
 DESCRIPTION_PKG = 'socialtech_robot_description'
 BRINGUP_PKG = 'socialtech_robot_bringup'
 AURORA_PKG = 'socialtech_robot_aurora'
+DEPTH_SCAN_PKG = 'aurora_depth_obstacle_scan'
 
 
 def _parse(pkg, relative_path):
@@ -125,5 +126,21 @@ def test_aurora_launch_declares_everything_robot_launch_forwards():
     undeclared = forwarded - declared
     assert not undeclared, (
         f'robot.launch.py forwards {sorted(undeclared)} to aurora.launch.py, '
+        'which does not declare them; ros2 launch would drop them silently.'
+    )
+
+
+def test_depth_scan_launch_declares_everything_robot_launch_forwards():
+    depth_tree = _parse(DEPTH_SCAN_PKG, 'launch/diagnostic.launch.py')
+    bringup_tree = _parse(BRINGUP_PKG, 'launch/robot.launch.py')
+
+    declared = _declared_launch_arguments(depth_tree)
+    forwarded = _forwarded_argument_keys(bringup_tree, 'aurora_depth_scan_launch')
+
+    assert 'params_file' in forwarded, (
+        'robot.launch.py must forward params_file to aurora_depth_obstacle_scan')
+    undeclared = forwarded - declared
+    assert not undeclared, (
+        f'robot.launch.py forwards {sorted(undeclared)} to diagnostic.launch.py, '
         'which does not declare them; ros2 launch would drop them silently.'
     )

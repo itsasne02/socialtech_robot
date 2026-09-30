@@ -90,8 +90,8 @@ public:
       }
     });
     RCLCPP_WARN(get_logger(),
-      "DIAGNOSTIC ONLY: depth accuracy and Robot 2 camera extrinsics unvalidated. "
-      "No Nav2/clearing. Heights use base_link; depth bounds provisional. "
+      "Depth accuracy and Robot 2 camera translation not metrically validated. "
+      "Heights use base_link; depth bounds provisional. "
       "Parameters are startup-only; restart to apply changes.");
   }
 

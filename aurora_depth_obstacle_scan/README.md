@@ -1,7 +1,10 @@
 # Aurora native depth → diagnostic LaserScan
 
-**Diagnostic prototype. Not accepted for navigation.** The operator explicitly
-authorized RViz validation before completing metric/TF acceptance on 2026-09-30.
+**Used on Robot 2 only as a `collision_monitor` source** (Itsasne,
+2026-09-30): `socialtech_robot_bringup robot.launch.py aurora_depth_scan:=true`
+starts it with `config/local_near.yaml`, and `socialtech_robot_navigation
+navigation.launch.py collision_source:=aurora_depth` slows and stops before
+what it sees. Not in any costmap (see "Near-field local costmap trial").
 The node does not start Nav2 or publish TF/PointCloud2. No clearing. No OpenCV,
 CUDA, VPI or Isaac dependency. Native DEPTH_MAP = optical Z was checked against
 paired SDK POINT3D; physical accuracy, camera extrinsics and floor rejection
@@ -88,10 +91,13 @@ ros2 launch aurora_depth_obstacle_scan diagnostic.launch.py \
   params_file:="$(ros2 pkg prefix --share aurora_depth_obstacle_scan)/config/local_near.yaml"
 ```
 
-Start only one instance of this node. The optional costmap integration lives
+Start only one instance of this node (the bringup's `aurora_depth_scan:=true`
+is one). The optional costmap integration lives
 in `socialtech_robot_navigation/config/local_costmap_sources/scan_and_aurora_depth.yaml`.
 It uses a separate marking-only ObstacleLayer so that LiDAR rays cannot clear
 tabletop marks. Missing depth does not clear cells: marks may persist even
 though the current LaserScan no longer contains that object. See that
-package's stationary diagnostic instructions. Full physical acceptance and
-A/B benchmark remain pending.
+package's stationary diagnostic instructions. On Robot 2 a person walking
+past left lethal cells 0.10 m from the bumper that did not clear with the
+robot still (2026-09-30), so this overlay is not used for navigation.
+Full physical acceptance and A/B benchmark remain pending.
