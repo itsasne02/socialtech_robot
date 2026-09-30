@@ -17,5 +17,14 @@ ament_target_dependencies(aurora_depth_obstacle_scan rclcpp rcl_interfaces senso
 install(TARGETS aurora_depth_obstacle_scan DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY config launch rviz DESTINATION share/${PROJECT_NAME})
 install(FILES README.md DESTINATION share/${PROJECT_NAME})
-
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_projection test/test_projection.cpp)
+  target_link_libraries(test_projection depth_projection)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  add_test(NAME test_ros_contract COMMAND ${Python3_EXECUTABLE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/test_ros_contract.py $<TARGET_FILE:aurora_depth_obstacle_scan>)
+  set_tests_properties(test_ros_contract PROPERTIES TIMEOUT 40
+    ENVIRONMENT "ROS_DOMAIN_ID=199;ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST")
+endif()
 ament_package()

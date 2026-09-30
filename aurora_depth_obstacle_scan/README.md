@@ -66,3 +66,9 @@ Check floor rejection and height bands before navigation. Empty bins should
 replace old detections when the object leaves view; RViz decay limits stale
 display if the stream stops. Record failures, do not fit one wall by changing
 TF or scale. Compare several distances and orientations before calibration.
+
+Tests: `colcon test --packages-select aurora_depth_obstacle_scan`. Ten C++
+geometry tests and an isolated ROS contract test cover TF absence, exact
+stamps in both arrival orders, malformed/stale images, invalid depth and
+no replay when inputs stop. The ROS test uses LOCALHOST domain 199 only; its
+synthetic TF never reaches robot domain 43.
