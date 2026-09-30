@@ -2,7 +2,7 @@
 
 **Diagnostic prototype. Not accepted for navigation.** The operator explicitly
 authorized RViz validation before completing metric/TF acceptance on 2026-09-30.
-No Nav2 overlay, no clearing, no PointCloud2, no new TF authority. No OpenCV,
+The node does not start Nav2 or publish TF/PointCloud2. No clearing. No OpenCV,
 CUDA, VPI or Isaac dependency. Native DEPTH_MAP = optical Z was checked against
 paired SDK POINT3D; physical accuracy, camera extrinsics and floor rejection
 remain to be validated. No scale or offset correction is applied.
@@ -72,3 +72,26 @@ geometry tests and an isolated ROS contract test cover TF absence, exact
 stamps in both arrival orders, malformed/stale images, invalid depth and
 no replay when inputs stop. The ROS test uses LOCALHOST domain 199 only; its
 synthetic TF never reaches robot domain 43.
+
+## Near-field local costmap trial
+
+`config/local_near.yaml` limits **horizontal range from base_link** to 1.50 m,
+while retaining the 0.05–0.90 m height band, stride 2×2 and 5 Hz. Optical Z
+limits are independent. The previous 3 m diagnostic profile stays available.
+For the current 0.70 m long centered footprint, a frontal return at 1.50 m
+is about 1.15 m ahead of the bumper. This is a trial range, not an accepted
+stopping distance; include speed, latency, braking and thin-object detection
+in physical acceptance.
+
+```bash
+ros2 launch aurora_depth_obstacle_scan diagnostic.launch.py \
+  params_file:="$(ros2 pkg prefix --share aurora_depth_obstacle_scan)/config/local_near.yaml"
+```
+
+Start only one instance of this node. The optional costmap integration lives
+in `socialtech_robot_navigation/config/local_costmap_sources/scan_and_aurora_depth.yaml`.
+It uses a separate marking-only ObstacleLayer so that LiDAR rays cannot clear
+tabletop marks. Missing depth does not clear cells: marks may persist even
+though the current LaserScan no longer contains that object. See that
+package's stationary diagnostic instructions. Full physical acceptance and
+A/B benchmark remain pending.
